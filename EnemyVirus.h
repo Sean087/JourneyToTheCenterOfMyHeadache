@@ -10,8 +10,8 @@ public:
 	~EnemyVirus();
 
 	// The dimensions of the Enemy (dimensions of sprite image)
-	//static const int ENEMY_WIDTH = 100;
-	//static const int ENEMY_HEIGHT = 47;
+	static const int VIRUS_WIDTH = 75;
+	static const int VIRUS_HEIGHT = 75;
 
 	static const int VIRUS_VEL = 3;		// 2017/01/10 JOE: Maximum axis velocity of the Enemy Virus (Slower than a ship)
 

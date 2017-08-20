@@ -21,6 +21,8 @@ JOE: Moved functionality common to game objects to GameObjects class reducing th
 Laser::Laser()
 {
 	std::cout << "Laser constuctor called.\n";
+	mLaserCollider.w = LASER_WIDTH;
+	mLaserCollider.h = LASER_HEIGHT;
 }
 
 // Laser Destructor
@@ -32,14 +34,22 @@ Laser::~Laser()
 void Laser::movement() {
 	GameObject::movement();
 
+	mLaserCollider.x = getX();
+	mLaserCollider.y = getY();
 	// destroy laser beam once it is offscreen
 	if (getX() > SCREEN_WIDTH) setAlive(false);
 	else setAlive(true);
 }
 
-void Laser::spawn(int x, int y) {
+void Laser::spawn(int x, int y, SDL_Rect collider) {
 	setX(x + 65);
 	setY(y + 30);
 	setVelX(LASER_VEL);
 	setVelY(0);
+	mLaserCollider = collider;
+}
+
+SDL_Rect Laser::getLaserCollider()
+{
+	return mLaserCollider;
 }

@@ -1,7 +1,8 @@
 #include "EnemyVirus.h"
 
 EnemyVirus::EnemyVirus() {
-
+	GameObject::setColliderW(VIRUS_WIDTH);
+	GameObject::setColliderH(VIRUS_HEIGHT);
 }
 
 EnemyVirus::~EnemyVirus() {
@@ -24,6 +25,9 @@ void EnemyVirus::movement(int shipX, int shipY) {
 	}
 	//else if (getY() - ship.getY() > 0 && getY() - ship.getY() < VIRUS_VEL)
 	//	setY(getY() - ship.getY());
+
+	GameObject::setColliderX(getX());
+	GameObject::setColliderY(getY());
 
 	// destroy enemy ship once it is offscreen
 	if (getX() < -100) setAlive(false);

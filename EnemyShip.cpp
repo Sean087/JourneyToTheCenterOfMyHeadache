@@ -13,6 +13,8 @@ EnemyShip::EnemyShip() {
 	//mEnVelY = 0;
 	setVelX(0);
 	setVelY(0);
+	GameObject::setColliderW(ENEMY_WIDTH);
+	GameObject::setColliderH(ENEMY_HEIGHT);
 }
 
 //void EnemyShip::spawn()/ {
@@ -31,6 +33,9 @@ EnemyShip::EnemyShip() {
 //}
 void EnemyShip::movement() {
 	GameObject::movement();
+
+	GameObject::setColliderX(getX());
+	GameObject::setColliderY(getY());
 
 	// destroy enemy ship once it is offscreen
 	if (getX() < -100) setAlive(false);

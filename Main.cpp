@@ -19,7 +19,7 @@ int main()
 
 	//game.init();			// Call the Game Class init function
 
-							// game loop	
+							// game loop
 							//while (loopNum < GAME_LOOPS) // loop until 20
 	while (finished >= 2 && finished < 5) // CA2 - Loop until game over condition has been triggered
 	{
@@ -45,5 +45,8 @@ int main()
 
 	game.info();			// Print Game Object details one more time
 	*/
+
+	system("Pause");
+
 	return 0;
 }

@@ -9,8 +9,8 @@ public:
 	//~EnemyShip();
 	
 	// The dimensions of the Enemy (dimensions of sprite image)
-	static const int ENEMY_WIDTH = 100;
-	static const int ENEMY_HEIGHT = 47;
+	static const int ENEMY_WIDTH = 120;
+	static const int ENEMY_HEIGHT = 60;
 
 	static const int ENEMY_VEL = 20;		// Maximum axis velocity of the Enemy
 

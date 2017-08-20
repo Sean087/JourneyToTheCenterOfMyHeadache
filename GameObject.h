@@ -19,6 +19,8 @@ public:
 	virtual void spawn(int x, int y);
 	void spawn(int x, int y, int vx);
 	void spawn(int x, int y, int vx, int vy);
+	void spawn(int x, int y, int vx, SDL_Rect collider);
+	void spawn(int x, int y, int vx, int vy, SDL_Rect collider);
 	virtual void movement();
 	//void render();
 	//void renderTexture(LTexture renderThis);
@@ -34,6 +36,11 @@ public:
 	void setVelX(int x);
 	void setVelY(int y);
 	void setAlive(bool alive);
+	SDL_Rect getCollider();
+	void setColliderW(int w);
+	void setColliderH(int h);
+	void setColliderX(int x);
+	void setColliderY(int y);
 
 private:
 	// GameObject Variables
@@ -44,6 +51,7 @@ private:
 	int m_xVel;
 	int m_yVel;
 	bool m_Alive;				// Is the weapon active on screen
+	SDL_Rect mCollider;
 };
 
 #endif

@@ -13,6 +13,7 @@
 #include <cstdlib>		// For Random Numbers
 #include <ctime>		// For Random Numbers
 #include <list>
+#include <vector>
 
 class Game {
 public:
@@ -20,13 +21,16 @@ public:
 	void update();
 	void close();					// Frees media and shuts down SDL
 
+
 	void spawnEnemies();
 	void spawnEnemyShip();			// 2017/01/09 JOE: added function to create enemy ships at random times and random y coord
 	void spawnEnemyVirus();			// 2017/01/10 JOE: added function to create enemy virus at random times and random y coord
 	void spawnBloodCell();			// 2017/01/10 JOE: add function to create blood cells
 	void spawnSmallBloodCell();
+	void spawnWhiteBloodCell();
 	void spawnLaser();
 	void spawnNinjaStar();			// 2017/01/09 JOE: added function to create ninja star weapons
+	void spawnPowerUp();
 
 	bool playerInput(bool quit);	// 2017/01/09 JOE: Handle input from player
 	void renderGameObjects();		// 2017-01-09 JOE: Render the game objects to the screen
