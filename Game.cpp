@@ -1,12 +1,13 @@
 
 /*
-    Scrolling Background Stops At End
+    Gamepad Supported
 
     2017-08-11:
         Joe: Change window title
         Joe: Add relative path for asset files in "Art" directory
         Joe: Changed getCollision() for ship and enemyship
         Joe: Add relative path for asset files in "Music" and "SoundFX" directories
+        Joe: Tested and working with Xbox One wireless controller
 */
 
 #include <SDL.h>
@@ -24,7 +25,7 @@
 #include "Laser.h"
 #include <list>
 
-int playerAlpha = 255;			// Modulation component for flashing objects
+int playerAlpha = 255;					// Modulation component for flashing objects
 int gameOverAlpha = 255;
 int timerAlpha = 255;
 bool playerFlash = false;
@@ -37,6 +38,10 @@ bool loadMedia();				// Loads media//void close();
 
 SDL_Window* gWindow = NULL;		// The window we'll be rendering to
 SDL_Renderer* gRenderer = NULL;	// The window renderer
+
+SDL_Event e;										// Event handler
+
+SDL_Joystick* gGameController = NULL;	// Game Controller 1 handler - Data type for a game controller is SDL_Joystick
 
 TTF_Font *gFont = NULL;			// Globally used font
 
@@ -145,7 +150,7 @@ bool Game::init() {
 	bool success = true;					// Initialization flag
 
 	// Initialize SDL
-	if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK) < 0) {
 		printf("SDL could not initialize! SDL Error: %s\n", SDL_GetError());
 		success = false;
 	} else {
@@ -154,7 +159,22 @@ bool Game::init() {
 			printf("Warning: Linear texture filtering not enabled!");
 		}
 
-		gWindow = SDL_CreateWindow("JOURNEY TO THE CENTER OF MY HEADACHE v1.13 by Joe O'Regan & Se\u00E1n Horgan - Scrolling Background Stops At End", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);	/* Create Window with name */
+		//Check for joysticks
+		if (SDL_NumJoysticks() < 1)							// check if there is at least one joystick connected.
+		{
+			printf("Warning: No joysticks connected!\n");
+		}
+		else {
+			//Load joystick
+			gGameController = SDL_JoystickOpen(0);			// open the joystick at index 0
+			printf("Joystick connected\n");						// DETECTS JOYSTICK
+			if (gGameController == NULL)
+			{
+				printf("Warning: Unable to open game controller! SDL Error: %s\n", SDL_GetError());
+			}
+		}
+
+		gWindow = SDL_CreateWindow("JOURNEY TO THE CENTER OF MY HEADACHE v1.14 by Joe O'Regan & Se\u00E1n Horgan - Gamepad Support", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);	/* Create Window with name */
 		if (gWindow == NULL) {
 			printf("Window could not be created! SDL Error: %s\n", SDL_GetError());
 			success = false;
@@ -263,6 +283,10 @@ void Game::close() {
 	gLaserTexture.free();
 	gGameOverTextTexture.free();
 
+	//Close game controller
+	SDL_JoystickClose(gGameController); // After we're done with the joystick, we close it with SDL_JoystickClose.
+	gGameController = NULL;
+
 	// Destroy window
 	SDL_DestroyRenderer(gRenderer);
 	SDL_DestroyWindow(gWindow);
@@ -289,6 +313,17 @@ void Game::update(){
 
 			SDL_Color textColor = { 0, 100, 200, 255 };
 
+			if (SDL_PollEvent(&e) != 0) {
+				printf("Joystick connected %d\n", e.jaxis.which);						// DETECTS JOYSTICK
+																						//printf("Number of buttons %d", SDL_JoystickNumButtons);
+																						//std::cout << "Number of buttons: " << SDL_JoystickNumButtons;
+				std::cout << "Number of buttons: " << SDL_JoystickNumButtons(gGameController) << std::endl;			// Number of useable buttons
+				std::cout << "Number of axes: " << SDL_JoystickNumAxes(gGameController) << std::endl;				// Number of axes on the controller, includes sticks and triggers.
+				std::cout << "Number of trackballs: " << SDL_JoystickNumBalls(gGameController) << std::endl;		// No trackballs on NVidia Shield Controller
+				std::cout << "Number of hats: " << SDL_JoystickNumHats(gGameController) << std::endl;				// Hats = d-pad on NVidia Shield Controller
+				std::cout << "Controller Name: " << SDL_JoystickName(gGameController) << std::endl;					// Name of joystick
+			}
+
 			unsigned int lastTime = 0, currentTime, countdownTimer = TIMER;	// TEST TIMING
 
 			//In memory text stream
@@ -312,7 +347,7 @@ void Game::update(){
 
 					countdownTimer -= 1;
 
-					std::cout << "Time: " << countdownTimer << " lastTime: " << lastTime << " currentTime: " << currentTime << std::endl;
+					//std::cout << "Time: " << countdownTimer << " lastTime: " << lastTime << " currentTime: " << currentTime << std::endl;
 				}
 
 				// Countdown Timer
@@ -356,8 +391,6 @@ void Game::update(){
 }
 
 bool Game::playerInput(bool quit = false) {
-	SDL_Event e;										// Event handler
-
 	// Handle events on queue
 	while (SDL_PollEvent(&e) != 0) {
 		// User requests quit	EXIT - CLOSE WINDOW
@@ -404,7 +437,7 @@ void Game::renderGameObjects() {// Scroll background
 		scrollingOffset = 0;				// update the scrolling background
 
 		backgroundLoopCounter++;					// count the number of times the background has looped
-		std::cout << "Background has looped " << backgroundLoopCounter << " times" << std::endl;
+		//std::cout << "Background has looped " << backgroundLoopCounter << " times" << std::endl;
 	}
 
 	// Clear screen

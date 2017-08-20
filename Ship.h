@@ -31,6 +31,8 @@ public:
 	SDL_Rect getCollider();
 	void setShipColX(int x);					// get the ships X position
 	void setShipColY(int y);					// get the ships Y position
+	void resetPreviousDirection();
+	void resetPreviousStickDirection();
 
 private:	
 	int mPosX, mPosY;				// The X and Y offsets of the ship	
