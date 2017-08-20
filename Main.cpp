@@ -11,6 +11,8 @@ int main()
 	game.update();
 
 	game.close();			// Free resources and close SDL
+
+	//system("pause");
 	
 	return 0;
 }

@@ -40,8 +40,8 @@ void Ship::handleEvent(SDL_Event& e) {
 		case SDLK_d: mVelX += SHIP_VEL; break;
 
 		// FIRE WEAPON
-		case SDLK_SPACE:
-			game1.spawnLaser();
+		case SDLK_SPACE: 
+			game1.spawnLaser(); 
 			break; // SEAN: Press space bar to spawn a new laser
 		}
 	}
@@ -61,7 +61,7 @@ void Ship::handleEvent(SDL_Event& e) {
 	}
 }
 
-void Ship::move() {
+void Ship::move() {	
 	mPosX += mVelX;												// Move the ship left or right
 	mCollider.x = mPosX;
 
@@ -70,7 +70,7 @@ void Ship::move() {
 		mPosX -= mVelX;											// Move back
 		mCollider.x = mPosX;
 	}
-
+		
 	mPosY += mVelY;												// Move the ship up or down
 	mCollider.y = mPosY;
 
@@ -98,11 +98,8 @@ int Ship::getShipVelY(){
 	return mVelY;
 }// end getX
 
-//SDL_Rect Ship::getCollider() {
-//	return mCollider;
-//}
-SDL_Rect* Ship::getCollider() {
-	return &mCollider;
+SDL_Rect Ship::getCollider(){
+	return mCollider;
 }
 
 void Ship::setShipX(int x){

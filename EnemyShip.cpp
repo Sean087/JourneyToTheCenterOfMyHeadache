@@ -39,7 +39,7 @@ void EnemyShip::moveEnemy() {
 	if ((mEnPosY < 0) || (mEnPosY + ENEMY_HEIGHT > SCREEN_HEIGHT)) {
 		mEnPosY -= mEnVelY;											// Move back
 		mCollider.y = mEnPosY;
-	}
+	}	
 }
 
 // get x and y function for Enemy
@@ -55,6 +55,6 @@ int EnemyShip::getEnemyVelX(){
 	return mEnVelX;
 }
 
-SDL_Rect* EnemyShip::getCollider(){
-	return &mCollider;
+SDL_Rect EnemyShip::getCollider(){
+	return mCollider;
 }

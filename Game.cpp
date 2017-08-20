@@ -1,5 +1,22 @@
+
+/*
+    Countdown Timer
+
+    2017-08-11:
+        Joe: Change window title
+        Joe: Add relative path for asset files in "Art" directory
+        Joe: Changed getCollision() for ship and enemyship
+        Joe: Add relative path for asset files in "Music" and "SoundFX" directories
+*/
+
 #include <SDL.h>
 #include <SDL_image.h>
+
+#include <SDL_ttf.h>	// Fonts
+#include <stdio.h>
+#include <string>
+#include <sstream>		// Using string streams
+
 #include "Game.h"
 #include "LTexture.h"
 #include "Ship.h"
@@ -7,17 +24,9 @@
 #include "Laser.h"
 #include <list>
 
-/*
-    Flash Ship After Collision + Screen size
-
-    2017-08-11:
-        Joe: Change window title
-        Joe: Add relative path for asset files in "Art" directory
-        Joe: Changed getCollision() for ship and enemyship
-*/
-
 Uint8 a = 255;					// Modulation component for flashing objects
 bool flash = false;
+bool gameOver = false;
 
 //bool init();					// Starts up SDL and creates window
 bool loadMedia();				// Loads media//void close();
@@ -25,11 +34,21 @@ bool loadMedia();				// Loads media//void close();
 SDL_Window* gWindow = NULL;		// The window we'll be rendering to
 SDL_Renderer* gRenderer = NULL;	// The window renderer
 
+TTF_Font *gFont = NULL;			// Globally used font
+
+//Scene textures
+LTexture gTimeTextTexture;
+LTexture gPromptTextTexture;
+LTexture gLevelTextTexture;
+
+Uint32 startTime = 6000;			// Unsigned integer 32-bits
+
 //Scene textures
 LTexture gBGTexture;
 LTexture gShipTexture;
 LTexture gEnemyShipTexture;
 LTexture gLaserTexture; // SEAN: Created Texture for Laser
+LTexture gGameOverTextTexture;
 
 // SEAN: Move ship object outside of main so spawnLaser funtion can use it
 Ship ship;									// Declare a ship object that will be moving around on the screen
@@ -38,7 +57,7 @@ EnemyShip enemy;
 
 int scrollingOffset = 0;					// Declare the background scrolling offset
 
-bool checkCollision(SDL_Rect* a, SDL_Rect* b);
+bool checkCollision(SDL_Rect a, SDL_Rect b);
 
 // SEAN : Created list and iterator for laser objects
 std::list<Laser*> listOfLaserObjects;		// List to store laser objects
@@ -73,6 +92,34 @@ bool LTexture::loadFromFile(std::string path) {
 	return mTexture != NULL;
 }
 
+#ifdef _SDL_TTF_H
+bool LTexture::loadFromRenderedText(std::string textureText, SDL_Color textColor) {
+	free();	//Get rid of preexisting texture
+
+	SDL_Surface* textSurface = TTF_RenderText_Solid(gFont, textureText.c_str(), textColor);	//Render text surface
+
+	if (textSurface != NULL) {
+		//Create texture from surface pixels
+		mTexture = SDL_CreateTextureFromSurface(gRenderer, textSurface);
+		if (mTexture == NULL) {
+			printf("Unable to create texture from rendered text! SDL Error: %s\n", SDL_GetError());
+		}
+		else {
+			//Get image dimensions
+			mWidth = textSurface->w;
+			mHeight = textSurface->h;
+		}
+
+		SDL_FreeSurface(textSurface);	//Get rid of old surface
+	}
+	else {
+		printf("Unable to render text surface! SDL_ttf Error: %s\n", TTF_GetError());
+	}
+
+	return mTexture != NULL;	// Return success
+}
+#endif
+
 void LTexture::render(int x, int y, SDL_Rect* clip, double angle, SDL_Point* center, SDL_RendererFlip flip) {
 	SDL_Rect renderQuad = { x, y, mWidth, mHeight };	// Set rendering space and render to screen
 
@@ -100,7 +147,7 @@ bool Game::init() {
 			printf("Warning: Linear texture filtering not enabled!");
 		}
 
-		gWindow = SDL_CreateWindow("JOURNEY TO THE CENTER OF MY HEADACHE v1.06 by Joe O'Regan & Se\u00E1n Horgan - Flash On Collision", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);	/* Create Window with name */
+		gWindow = SDL_CreateWindow("JOURNEY TO THE CENTER OF MY HEADACHE v1.12 by Joe O'Regan & Se\u00E1n Horgan - Countdown Timer", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);	/* Create Window with name */
 		if (gWindow == NULL) {
 			printf("Window could not be created! SDL Error: %s\n", SDL_GetError());
 			success = false;
@@ -117,6 +164,12 @@ bool Game::init() {
 					printf("SDL_image could not initialize! SDL_image Error: %s\n", IMG_GetError());
 					success = false;
 				}
+
+				//Initialize SDL_ttf
+				if (TTF_Init() == -1) {
+					printf("SDL_ttf could not initialize! SDL_ttf Error: %s\n", TTF_GetError());
+					success = false;
+				}
 			}
 		}
 	}
@@ -125,14 +178,38 @@ bool Game::init() {
 }
 
 bool loadMedia() {
-	bool success = true;			                                // Loading success flag
+	bool success = true;			// Loading success flag
 
-	if (!gShipTexture.loadFromFile(".\\Art\\Player1Ship.png")) {	    // Load Ship texture
+	//Open the font
+	//gFont = TTF_OpenFont("22_timing/lazy.ttf", 28);
+	gFont = TTF_OpenFont(".\\Font\\lazy.ttf", 28);
+	if (gFont == NULL) {
+		printf("Failed to load lazy font! SDL_ttf Error: %s\n", TTF_GetError());
+		success = false;
+	}
+	else {
+		//Set text color as black
+		//SDL_Color textColor = { 100, 225, 225, 255 }; // too bright
+		SDL_Color textColor = { 0, 100, 200, 255 };
+		TTF_SetFontStyle(gFont, TTF_STYLE_BOLD);
+
+		//Load prompt texture
+		if (!gPromptTextTexture.loadFromRenderedText("Press Enter to Reset Start Time.", textColor)) {
+			printf("Unable to render prompt text texture!\n");
+			success = false;
+		}
+		if (!gLevelTextTexture.loadFromRenderedText("Level 1", textColor)) {
+			printf("Unable to render level text texture!\n");
+			success = false;
+		}
+	}
+
+	if (!gShipTexture.loadFromFile(".\\Art\\Player1Ship.png")) {	// Load Ship texture
 		printf("Failed to load Player texture!\n");
 		success = false;
 	}
 
-	if (!gEnemyShipTexture.loadFromFile(".\\Art\\EnemyVirus.png")) {// Load Enemy Ship texture
+	if (!gEnemyShipTexture.loadFromFile(".\\Art\\EnemyVirus.png")) {		// Load Enemy Ship texture
 		printf("Failed to load Enemy texture!\n");
 		success = false;
 	}
@@ -142,8 +219,13 @@ bool loadMedia() {
 		success = false;
 	}
 
-	if (!gLaserTexture.loadFromFile(".\\Art\\LaserGreen.png")) {	// SEAN: Load Laser texture
+	if (!gLaserTexture.loadFromFile(".\\Art\\LaserBeam.png")) {	// SEAN: Load Laser texture
 		printf("Failed to load Laser texture!\n");
+		success = false;
+	}
+
+	if (!gGameOverTextTexture.loadFromFile(".\\Art\\GameOver.png")) {
+		printf("Failed to load Game Over texture!\n");
 		success = false;
 	}
 
@@ -152,10 +234,14 @@ bool loadMedia() {
 
 void Game::close() {
 	// Free loaded images
+	gTimeTextTexture.free();
+	gPromptTextTexture.free();
+	gLevelTextTexture.free();
 	gShipTexture.free();
 	gEnemyShipTexture.free();
 	gBGTexture.free();
 	gLaserTexture.free();
+	gGameOverTextTexture.free();
 
 	// Destroy window
 	SDL_DestroyRenderer(gRenderer);
@@ -164,6 +250,7 @@ void Game::close() {
 	gRenderer = NULL;
 
 	// Quit SDL subsystems
+	TTF_Quit();
 	IMG_Quit();
 	SDL_Quit();
 }
@@ -180,10 +267,76 @@ void Game::update(){
 		else {
 			bool quit = false;						// Main loop flag
 
+			//SDL_Color textColor = { 0, 0, 0, 255 };	//Set text color as black
+			SDL_Color textColor = { 0, 100, 200, 255 };
+
+
+
+			// TEST TIMING
+			unsigned int lastTime = 0, currentTime, countdownTimer = 3;
+
+
+
+			//Current time start time
+			//Uint32 startTime = 0;			// Unsigned integer 32-bits
+
+			//In memory text stream
+			// string streams - function like iostreams only instead of reading or writing to the console,
+			// they allow you to read and write to a string in memory
+			std::stringstream timeText;		// string stream
+
 			while (!quit) {							// While application is running
 				playerFlashOnCollide();
 
 				quit = playerInput(quit);			// 2017/01/09 JOE: Handle input from player
+
+
+				//Set text to be rendered - string stream - print the time since timer last started
+				timeText.str("");			// initialise empty
+
+				currentTime = SDL_GetTicks();
+
+				if (currentTime > lastTime + 1000) {
+					lastTime = currentTime;
+
+					countdownTimer -= 1;
+
+					std::cout << "Time: " << countdownTimer << " lastTime: " << lastTime << " currentTime: " << currentTime << std::endl;
+				}
+
+				if (countdownTimer > 3 && countdownTimer < 10) {
+					timeText << "Game Over";
+					gameOver = true;
+				}
+				else if (countdownTimer >= 0 && countdownTimer <= 3) {
+					timeText << "Time: " << countdownTimer;
+					gameOver = false;
+				}
+				if (countdownTimer <= 0 || countdownTimer > 10) {
+					timeText << "Game Over";
+					gameOver = true;
+					countdownTimer = 5;
+				}
+
+
+
+				/*
+				if (countdownTimer > 5)
+					timeText << "Game Over";
+				if (countdownTimer > 0 && countdownTimer < 10)
+					timeText << "Time: " << countdownTimer + 1;
+				//else if (countdownTimer < 1 || countdownTimer > 5) {
+				else if (countdownTimer < 1) {
+					timeText << "Game Over";
+					//countdownTimer = 8;
+				}
+				if (countdownTimer == 0)
+					countdownTimer = 8;
+				*/
+				//Render text - Get a string from it and use it to render the current time to a texture
+				if (!gTimeTextTexture.loadFromRenderedText(timeText.str().c_str(), textColor)) {
+					printf("Unable to render time texture!\n");
+				}
 
 				renderGameObjects();
 
@@ -203,6 +356,11 @@ bool Game::playerInput(bool quit = false) {
 		// User requests quit	EXIT - CLOSE WINDOW
 		if (e.type == SDL_QUIT) {
 			quit = true;
+		}
+		//Reset start time on return keypress
+		else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_RETURN) {
+			startTime = SDL_GetTicks();	// time since the program started in milliseconds
+			//startTime -= SDL_GetTicks();	// time since the program started in milliseconds
 		}
 
 		ship.handleEvent(e);							// Handle input for the ship
@@ -232,24 +390,42 @@ void Game::renderGameObjects() {// Scroll background
 	SDL_RenderClear(gRenderer);
 
 	// Render background
-	gBGTexture.render(scrollingOffset, 0);
-	gBGTexture.render(scrollingOffset + gBGTexture.getWidth(), 0);
+	gBGTexture.render(scrollingOffset, 0);								// 1st background
+	gBGTexture.render(scrollingOffset + gBGTexture.getWidth(), 0);		// 2nd background
 
-	SDL_SetRenderDrawColor(gRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
-	//SDL_RenderDrawRect(gRenderer, &enemy.getCollider());  // 2017/08/11 Changed
-	//SDL_RenderDrawRect(gRenderer, &ship.getCollider());   // 2017/08/11 Changed
-	SDL_RenderDrawRect(gRenderer, enemy.getCollider());
-	SDL_RenderDrawRect(gRenderer, ship.getCollider());
+	if (gameOver == false) {
+		SDL_SetRenderDrawColor(gRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
 
-	gShipTexture.setAlpha(a);				/* Set the Alpha value for Enemy */
-	ship.render();							// render the ship over the background
-	enemy.render();
+		//SDL_RenderDrawRect(gRenderer, &enemy.getCollider());
+		//SDL_RenderDrawRect(gRenderer, &ship.getCollider());
 
-	// SEAN: Cycle through list of laser objects and render them to screen
-	for (iter = listOfLaserObjects.begin(); iter != listOfLaserObjects.end();) {
+		gShipTexture.setAlpha(a);				/* Set the Alpha value for Enemy */
+		ship.render();							// render the ship over the background
+		enemy.render();
 
-		(*iter++)->render();	// Render the laser
+		// SEAN: Cycle through list of laser objects and render them to screen
+		for (iter = listOfLaserObjects.begin(); iter != listOfLaserObjects.end();) {
+			(*iter++)->render();	// Render the laser
+		}
 	}
+	else {
+	gGameOverTextTexture.render((SCREEN_WIDTH - gGameOverTextTexture.getWidth()) / 2, (SCREEN_HEIGHT - gGameOverTextTexture.getHeight()) / 2);
+
+
+	//gGameOverTextTexture.render(100, 100);
+
+	}
+
+
+	//Render textures
+	// Render prompt texture and time texture to the screen
+	gPromptTextTexture.render((SCREEN_WIDTH - gPromptTextTexture.getWidth()) / 2, SCREEN_HEIGHT - gPromptTextTexture.getHeight() - 8);
+	//gPromptTextTexture.render(10, 8);
+	gLevelTextTexture.render(10, 8);
+	//gTimeTextTexture.render((SCREEN_WIDTH - gPromptTextTexture.getWidth()) / 2, (SCREEN_HEIGHT - gPromptTextTexture.getHeight()) / 2);
+	//gTimeTextTexture.render((SCREEN_WIDTH - (gPromptTextTexture.getWidth()) + gTimeTextTexture.getWidth()) / 2, 0);
+	gTimeTextTexture.render(600, 8);
+
 
 	SDL_RenderPresent(gRenderer);			// Update screen
 }
@@ -286,12 +462,11 @@ void EnemyShip::render() {
 	gEnemyShipTexture.render(mEnPosX, mEnPosY);
 }
 
-bool checkCollision(SDL_Rect* a, SDL_Rect* b){
+bool checkCollision(SDL_Rect a, SDL_Rect b){
 	//The sides of the rectangles
 	int leftA, leftB, rightA, rightB;
 	int topA, topB, bottomA, bottomB;
-    /*
-    // Old Version
+
 	//Calculate the sides of rect A
 	leftA = a.x;
 	rightA = a.x + a.w;
@@ -303,19 +478,6 @@ bool checkCollision(SDL_Rect* a, SDL_Rect* b){
 	rightB = b.x + b.w;
 	topB = b.y;
 	bottomB = b.y + b.h;
-	*/
-
-	//Calculate the sides of rect A
-	leftA = (*a).x;                                                 // 2017-08-11 Changed
-	rightA = (*a).x + (*a).w;
-	topA = (*a).y;
-	bottomA = (*a).y + (*a).h;
-
-	//Calculate the sides of rect B
-	leftB = (*b).x;                                                 // 2017-08-11 Changed
-	rightB = (*b).x + (*b).w;
-	topB = (*b).y;
-	bottomB = (*b).y + (*b).h;
 
 	//If any of the sides from A are outside of B
 	if (bottomA <= topB)	{
