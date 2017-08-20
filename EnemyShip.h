@@ -9,15 +9,13 @@
 class EnemyShip {
 public:
 	EnemyShip();							// Initializes the variables
-	//~EnemyShip();
-
+	~EnemyShip();
 
 	// The dimensions of the Enemy (dimensions of sprite image)
 	static const int ENEMY_WIDTH = 75;
 	static const int ENEMY_HEIGHT = 75;
 
 	static const int ENEMY_VEL = 20;	// Maximum axis velocity of the Enemy
-
 
 	//void spawn(int x, int y, int velocity);
 	//void spawn(int y, int velocity);
@@ -29,6 +27,9 @@ public:
 	int getEnemyY();
 	int getEnemyVelX();
 
+
+	//void setAlive(bool alive);
+
 	SDL_Rect getCollider();
 
 	SDL_Rect mCollider;						// Enemies 
@@ -37,10 +38,13 @@ public:
 	//int setEnemyY(int y);
 	//int setEnemyVelX(int x);
 
+
+
+	bool mEnAlive;
+
 private:
 	int mEnPosX, mEnPosY;					// The X and Y offsets of the Enemy	
 	int mEnVelX, mEnVelY;					// The velocity of the Enemy
-	int mEnAlive;
 
 };
 

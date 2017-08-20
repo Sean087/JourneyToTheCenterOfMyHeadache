@@ -16,6 +16,10 @@ EnemyShip::EnemyShip() {
 	mCollider.h = ENEMY_HEIGHT;
 }
 
+EnemyShip::~EnemyShip() {
+	std::cout << "Enemy Ship Destroyed" << std::endl;
+}
+
 void EnemyShip::spawn() {
 	mEnPosX = 500;
 	mEnPosY = 240;
@@ -40,6 +44,10 @@ void EnemyShip::moveEnemy() {
 		mEnPosY -= mEnVelY;											// Move back
 		mCollider.y = mEnPosY;
 	}	
+
+	// destroy enemy once it is offscreen
+	if (getEnemyX() > SCREEN_WIDTH) mEnAlive = false;
+	else mEnAlive = true;
 }
 
 // get x and y function for Enemy

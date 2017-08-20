@@ -29,7 +29,7 @@ public:
 	void moveGameObjects();
 	void destroyGameObjects();
 
-	void playerFlashOnCollide();	// 2017-01-09 JOE: The player texture flashes on collision with other Game Objects
+	void flashGameObject(int &alpha, bool &flash, int rate = 10,  int times = 0);
 };
 
 #endif

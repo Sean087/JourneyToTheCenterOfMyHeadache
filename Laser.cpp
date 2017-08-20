@@ -33,7 +33,7 @@ void Laser::move() {
 	mLaserCollider.x = mPosX;
 
 	// destroy laser beam once it is offscreen
-	if (getLaserX() > 645) mAlive = false;
+	if (getLaserX() > SCREEN_WIDTH) mAlive = false;
 	else mAlive = true;
 
 }

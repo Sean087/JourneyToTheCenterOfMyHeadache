@@ -1,6 +1,6 @@
 
 /*
-    Countdown Timer
+    Scrolling Background Stops At End
 
     2017-08-11:
         Joe: Change window title
@@ -24,8 +24,12 @@
 #include "Laser.h"
 #include <list>
 
-Uint8 a = 255;					// Modulation component for flashing objects
-bool flash = false;
+int playerAlpha = 255;			// Modulation component for flashing objects
+int gameOverAlpha = 255;
+int timerAlpha = 255;
+bool playerFlash = false;
+bool gameOverFlash = true;
+bool timerFlash = false;
 bool gameOver = false;
 
 //bool init();					// Starts up SDL and creates window
@@ -41,10 +45,13 @@ LTexture gTimeTextTexture;
 LTexture gPromptTextTexture;
 LTexture gLevelTextTexture;
 
+#define TIMER 15				// Time to start counting down from in seconds
 Uint32 startTime = 6000;			// Unsigned integer 32-bits
 
 //Scene textures
 LTexture gBGTexture;
+LTexture gBGStartTexture;
+LTexture gBGEndTexture;
 LTexture gShipTexture;
 LTexture gEnemyShipTexture;
 LTexture gLaserTexture; // SEAN: Created Texture for Laser
@@ -147,7 +154,7 @@ bool Game::init() {
 			printf("Warning: Linear texture filtering not enabled!");
 		}
 
-		gWindow = SDL_CreateWindow("JOURNEY TO THE CENTER OF MY HEADACHE v1.12 by Joe O'Regan & Se\u00E1n Horgan - Countdown Timer", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);	/* Create Window with name */
+		gWindow = SDL_CreateWindow("JOURNEY TO THE CENTER OF MY HEADACHE v1.13 by Joe O'Regan & Se\u00E1n Horgan - Scrolling Background Stops At End", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);	/* Create Window with name */
 		if (gWindow == NULL) {
 			printf("Window could not be created! SDL Error: %s\n", SDL_GetError());
 			success = false;
@@ -194,7 +201,8 @@ bool loadMedia() {
 		TTF_SetFontStyle(gFont, TTF_STYLE_BOLD);
 
 		//Load prompt texture
-		if (!gPromptTextTexture.loadFromRenderedText("Press Enter to Reset Start Time.", textColor)) {
+		//if (!gPromptTextTexture.loadFromRenderedText("Press Enter to Reset Start Time.", textColor)) {
+		if (!gPromptTextTexture.loadFromRenderedText("A Game By Sean Horgan And Joe O'Regan", textColor)) {
 			printf("Unable to render prompt text texture!\n");
 			success = false;
 		}
@@ -209,6 +217,7 @@ bool loadMedia() {
 		success = false;
 	}
 
+	//if (!gEnemyShipTexture.loadFromFile("Enemy.png")) {		// Load Enemy Ship texture
 	if (!gEnemyShipTexture.loadFromFile(".\\Art\\EnemyVirus.png")) {		// Load Enemy Ship texture
 		printf("Failed to load Enemy texture!\n");
 		success = false;
@@ -218,13 +227,22 @@ bool loadMedia() {
 		printf("Failed to load background texture!\n");
 		success = false;
 	}
+	if (!gBGStartTexture.loadFromFile(".\\Art\\bgBegin.png")) {	// Load background texture
+		printf("Failed to load start background texture!\n");
+		success = false;
+	}
+	if (!gBGEndTexture.loadFromFile(".\\Art\\bgEnd.png")) {	// Load background texture
+		printf("Failed to load end background texture!\n");
+		success = false;
+	}
 
 	if (!gLaserTexture.loadFromFile(".\\Art\\LaserBeam.png")) {	// SEAN: Load Laser texture
 		printf("Failed to load Laser texture!\n");
 		success = false;
 	}
 
-	if (!gGameOverTextTexture.loadFromFile(".\\Art\\GameOver.png")) {
+	//if (!gGameOverTextTexture.loadFromFile("GameOver.png")) {
+	if (!gGameOverTextTexture.loadFromFile(".\\Art\\GameOverTEST.png")) {
 		printf("Failed to load Game Over texture!\n");
 		success = false;
 	}
@@ -240,6 +258,8 @@ void Game::close() {
 	gShipTexture.free();
 	gEnemyShipTexture.free();
 	gBGTexture.free();
+	gBGStartTexture.free();
+	gBGEndTexture.free();
 	gLaserTexture.free();
 	gGameOverTextTexture.free();
 
@@ -267,32 +287,23 @@ void Game::update(){
 		else {
 			bool quit = false;						// Main loop flag
 
-			//SDL_Color textColor = { 0, 0, 0, 255 };	//Set text color as black
 			SDL_Color textColor = { 0, 100, 200, 255 };
 
-
-
-			// TEST TIMING
-			unsigned int lastTime = 0, currentTime, countdownTimer = 3;
-
-
-
-			//Current time start time
-			//Uint32 startTime = 0;			// Unsigned integer 32-bits
+			unsigned int lastTime = 0, currentTime, countdownTimer = TIMER;	// TEST TIMING
 
 			//In memory text stream
-			// string streams - function like iostreams only instead of reading or writing to the console,
-			// they allow you to read and write to a string in memory
+			// string streams - function like iostreams only instead of reading or writing to the console, they allow you to read and write to a string in memory
 			std::stringstream timeText;		// string stream
 
-			while (!quit) {							// While application is running
-				playerFlashOnCollide();
+			while (!quit) {											// While application is running
+				//flashGameObject();
+				flashGameObject(playerAlpha, playerFlash, 10, 4);	// Flash player ship when it has a collision, flash at faster rate, flash 4 times
+				flashGameObject(gameOverAlpha, gameOverFlash, 5);	// Flash game over at end of game, flash at slower rate for 5 than 10
+				flashGameObject(timerAlpha, timerFlash, 8);			// Flash timer when time is running out
 
-				quit = playerInput(quit);			// 2017/01/09 JOE: Handle input from player
+				quit = playerInput(quit);							// 2017/01/09 JOE: Handle input from player
 
-
-				//Set text to be rendered - string stream - print the time since timer last started
-				timeText.str("");			// initialise empty
+				timeText.str("");									// Set text to be rendered - string stream - print the time since timer last started - initialise empty
 
 				currentTime = SDL_GetTicks();
 
@@ -304,35 +315,31 @@ void Game::update(){
 					std::cout << "Time: " << countdownTimer << " lastTime: " << lastTime << " currentTime: " << currentTime << std::endl;
 				}
 
-				if (countdownTimer > 3 && countdownTimer < 10) {
+				// Countdown Timer
+				if (countdownTimer > TIMER && countdownTimer < TIMER + 6) {
 					timeText << "Game Over";
 					gameOver = true;
 				}
-				else if (countdownTimer >= 0 && countdownTimer <= 3) {
+				else if (countdownTimer >= 0 && countdownTimer <= TIMER) {
 					timeText << "Time: " << countdownTimer;
 					gameOver = false;
 				}
-				if (countdownTimer <= 0 || countdownTimer > 10) {
+				if (countdownTimer <= 0 || countdownTimer > TIMER + 6) {
 					timeText << "Game Over";
 					gameOver = true;
-					countdownTimer = 5;
+					countdownTimer = TIMER + 5;	// flash game over for 5 seconds
 				}
 
-
-
-				/*
-				if (countdownTimer > 5)
-					timeText << "Game Over";
-				if (countdownTimer > 0 && countdownTimer < 10)
-					timeText << "Time: " << countdownTimer + 1;
-				//else if (countdownTimer < 1 || countdownTimer > 5) {
-				else if (countdownTimer < 1) {
-					timeText << "Game Over";
-					//countdownTimer = 8;
+				// Time running out change colour to red
+				if (countdownTimer >= 0 && countdownTimer <= 5) {
+					textColor = { 255, 0, 0, 255 };
+					timerFlash = true;
 				}
-				if (countdownTimer == 0)
-					countdownTimer = 8;
-				*/
+				else {
+					textColor = { 0, 100, 200, 255 };
+					timerFlash = false;
+				}
+
 				//Render text - Get a string from it and use it to render the current time to a texture
 				if (!gTimeTextTexture.loadFromRenderedText(timeText.str().c_str(), textColor)) {
 					printf("Unable to render time texture!\n");
@@ -360,7 +367,6 @@ bool Game::playerInput(bool quit = false) {
 		//Reset start time on return keypress
 		else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_RETURN) {
 			startTime = SDL_GetTicks();	// time since the program started in milliseconds
-			//startTime -= SDL_GetTicks();	// time since the program started in milliseconds
 		}
 
 		ship.handleEvent(e);							// Handle input for the ship
@@ -379,10 +385,26 @@ void Game::moveGameObjects() {// SEAN: Cycle through list of laser objects and m
 	}
 }
 
+
+
+
+
+
+
+int backgroundLoopCounter = 0;
+#define BACKGROUND_TIMES 4
+
 void Game::renderGameObjects() {// Scroll background
-	--scrollingOffset;
+
+
+	//--scrollingOffset;
+
+	if(backgroundLoopCounter <= BACKGROUND_TIMES) scrollingOffset -= 5;
 	if (scrollingOffset < -gBGTexture.getWidth()) {
 		scrollingOffset = 0;				// update the scrolling background
+
+		backgroundLoopCounter++;					// count the number of times the background has looped
+		std::cout << "Background has looped " << backgroundLoopCounter << " times" << std::endl;
 	}
 
 	// Clear screen
@@ -390,18 +412,33 @@ void Game::renderGameObjects() {// Scroll background
 	SDL_RenderClear(gRenderer);
 
 	// Render background
-	gBGTexture.render(scrollingOffset, 0);								// 1st background
-	gBGTexture.render(scrollingOffset + gBGTexture.getWidth(), 0);		// 2nd background
+	if(backgroundLoopCounter < 1)
+		gBGStartTexture.render(scrollingOffset, 0);			// 1st
+	else if(backgroundLoopCounter > BACKGROUND_TIMES)
+		gBGEndTexture.render(scrollingOffset, 0);			// end background
+	else
+		gBGTexture.render(scrollingOffset, 0);				// 3rd and every odd number
+
+	if(backgroundLoopCounter < BACKGROUND_TIMES)
+		gBGTexture.render(scrollingOffset + gBGTexture.getWidth(), 0);		// 2nd background (and every even number)
+	else
+		gBGEndTexture.render(scrollingOffset + gBGTexture.getWidth(), 0);		// end background
+
+	//gBGTexture.render(scrollingOffset, 0);								// 1st background
+	//gBGTexture.render(scrollingOffset + gBGTexture.getWidth(), 0);		// 2nd background
+
+
+
 
 	if (gameOver == false) {
 		SDL_SetRenderDrawColor(gRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
 
-		//SDL_RenderDrawRect(gRenderer, &enemy.getCollider());
-		//SDL_RenderDrawRect(gRenderer, &ship.getCollider());
+//		if(enemy.mEnAlive) SDL_RenderDrawRect(gRenderer, &enemy.getCollider());
+//		SDL_RenderDrawRect(gRenderer, &ship.getCollider());
 
-		gShipTexture.setAlpha(a);				/* Set the Alpha value for Enemy */
+		gShipTexture.setAlpha(playerAlpha);		// Flash the player ship -  Set the Alpha value for Enemy
 		ship.render();							// render the ship over the background
-		enemy.render();
+		if(enemy.mEnAlive == true) enemy.render();
 
 		// SEAN: Cycle through list of laser objects and render them to screen
 		for (iter = listOfLaserObjects.begin(); iter != listOfLaserObjects.end();) {
@@ -409,26 +446,22 @@ void Game::renderGameObjects() {// Scroll background
 		}
 	}
 	else {
-	gGameOverTextTexture.render((SCREEN_WIDTH - gGameOverTextTexture.getWidth()) / 2, (SCREEN_HEIGHT - gGameOverTextTexture.getHeight()) / 2);
-
-
-	//gGameOverTextTexture.render(100, 100);
-
+		gGameOverTextTexture.setAlpha(gameOverAlpha);
+		//gGameOverTextTexture.render((SCREEN_WIDTH - gGameOverTextTexture.getWidth()) / 2, (SCREEN_HEIGHT - gGameOverTextTexture.getHeight()) / 2);
+		gGameOverTextTexture.render((SCREEN_WIDTH - gGameOverTextTexture.getWidth()) / 2, (SCREEN_HEIGHT - gGameOverTextTexture.getHeight() + 250) / 2); // FOR TESTING
 	}
-
 
 	//Render textures
 	// Render prompt texture and time texture to the screen
 	gPromptTextTexture.render((SCREEN_WIDTH - gPromptTextTexture.getWidth()) / 2, SCREEN_HEIGHT - gPromptTextTexture.getHeight() - 8);
-	//gPromptTextTexture.render(10, 8);
 	gLevelTextTexture.render(10, 8);
-	//gTimeTextTexture.render((SCREEN_WIDTH - gPromptTextTexture.getWidth()) / 2, (SCREEN_HEIGHT - gPromptTextTexture.getHeight()) / 2);
-	//gTimeTextTexture.render((SCREEN_WIDTH - (gPromptTextTexture.getWidth()) + gTimeTextTexture.getWidth()) / 2, 0);
+	gTimeTextTexture.setAlpha(timerAlpha);	// Flash the timer
 	gTimeTextTexture.render(600, 8);
-
 
 	SDL_RenderPresent(gRenderer);			// Update screen
 }
+
+
 
 void Game::destroyGameObjects() {
 	for (iter = listOfLaserObjects.begin(); iter != listOfLaserObjects.end();) {
@@ -439,7 +472,7 @@ void Game::destroyGameObjects() {
 		else {
 			iter++;
 		}
-	}// end for
+	}
 }
 
 // SEAN: Function to spawn laser at ships location
@@ -459,7 +492,7 @@ void Laser::render() {
 }
 
 void EnemyShip::render() {
-	gEnemyShipTexture.render(mEnPosX, mEnPosY);
+	if(enemy.mEnAlive) gEnemyShipTexture.render(mEnPosX, mEnPosY);
 }
 
 bool checkCollision(SDL_Rect a, SDL_Rect b){
@@ -497,8 +530,9 @@ bool checkCollision(SDL_Rect a, SDL_Rect b){
 	}
 
 	std::cout << "Collision!" << std::endl;
-	//playerFlashOnCollide();
-	flash = true;
+	playerFlash = true;
+
+	enemy.mEnAlive = false;
 
 	ship.setShipX(ship.getShipX() - ship.getShipVelX());
 	ship.setShipColX(ship.getShipX());
@@ -509,30 +543,31 @@ bool checkCollision(SDL_Rect a, SDL_Rect b){
 	return true;	//If none of the sides from A are outside B
 }
 
-
 int counter = 0;
 
-void Game::playerFlashOnCollide() {
+//void Game::flashGameObject() {
+void Game::flashGameObject(int &alpha, bool &flash, int rate, int times) {
 		if (flash) {
 			if (alphaDown > 5) {
-				alphaDown -= 10;
-				if (a < 5) a = 5;
-				else a = alphaDown;
+				alphaDown -= rate;
+				if (alpha < 5) alpha = 5;
+				else alpha = alphaDown;
 				if (alphaDown <= 5) alphaUp = 5;
 			}
 			if (alphaUp < 255) {
-				alphaUp += 10;
-				if (a > 255) a = 255;
-				else a = alphaUp;
+				alphaUp += rate;
+				if (alpha > 255) alpha = 255;
+				else alpha = alphaUp;
 				if (alphaUp >= 255) alphaDown = 255;
 			}
 
-			if (counter > 150) {	// takes 25 decrements of 10 to set alpha to 5, and 25 increments to set alpha back to 255, 50 = 1 flash approx.
+			if (times != 0 && counter > times * 50) {	// takes 25 decrements of 10 to set alpha to 5, and 25 increments to set alpha back to 255, 50 = 1 flash approx.
 				flash = false;
 				counter = 0;
+				alpha = 255;
 			}
 		}
-		//else a = 255;	// visible -> dont need changed default a value to 255
+		else alpha = 255;	// Set visibility back to maximum
 
 		counter++;
 }
