@@ -21,12 +21,12 @@ const int JOYSTICK_DEAD_ZONE = 8000;	// Create a deadzone where input from the c
 Game game1;
 Ship::Ship() {
 	// Initialize the offsets
-	mPosX = 0;
-	mPosY = 200;
+	setX(0);
+	setY(200);
 
 	// Initialize the velocity
-	mVelX = 0;
-	mVelY = 0;
+	setVelX(0);
+	setVelY(0);
 
 	// Set Collision Box Dimension
 	mCollider.w = SHIP_WIDTH;
@@ -36,215 +36,284 @@ Ship::Ship() {
 int previous = 0;
 int previousStick = 0;
 
-void Ship::handleEvent(SDL_Event& e) {
-	// If a key was pressed
-	int storeX = 0, storeY = 0;
-	//Normalized direction
-	int xDir = 0;		// keep track of the x direction, x equals ‐1, the joystick's x position is pointing left
-	int yDir = 0;		// keep track of the y direction, positive up, negative down
+void Ship::handleEvent(SDL_Event& e, int player) {
+	if (player == 1) {
+		if (e.type == SDL_KEYDOWN && e.key.repeat == 0) {
+			switch (e.key.keysym.sym) {
+			case SDLK_w: setVelY(getVelY() - SHIP_VEL); break;
+			case SDLK_s: setVelY(getVelY() + SHIP_VEL); break;
+			case SDLK_a: setVelX(getVelX() - SHIP_VEL); break;
+			case SDLK_d: setVelX(getVelX() + SHIP_VEL); break;
 
+			// FIRE WEAPON
+			//case SDLK_SPACE: game1.spawnLaser(); break; // SEAN: Press space bar to spawn a new laser
+			case SDLK_LCTRL: game1.spawnLaser(getX(), getY()); break;
+			}
+		}
+		else if (e.type == SDL_KEYUP && e.key.repeat == 0) {
+			// Adjust the velocity
+			switch (e.key.keysym.sym) {
+			case SDLK_w: setVelY(getVelY() + SHIP_VEL); break;
+			case SDLK_s: setVelY(getVelY() - SHIP_VEL); break;
+			case SDLK_a: setVelX(getVelX() + SHIP_VEL); break;
+			case SDLK_d: setVelX(getVelX() - SHIP_VEL); break;
+			}
+		}
+	}
+	else if (player == 2) {
+		if (e.type == SDL_KEYDOWN && e.key.repeat == 0) {
+			switch (e.key.keysym.sym) {
+			case SDLK_UP: setVelY(getVelY() - SHIP_VEL); break;
+			case SDLK_DOWN: setVelY(getVelY() + SHIP_VEL); break;
+			case SDLK_LEFT: setVelX(getVelX() - SHIP_VEL); break;
+			case SDLK_RIGHT: setVelX(getVelX() + SHIP_VEL); break;
+
+			// FIRE WEAPON SDLK_RCTRL
+			//case SDLK_e: game1.spawnLaser(getX(), getY()); break; // SEAN: Press space bar to spawn a new laser
+			case SDLK_RCTRL: game1.spawnLaser(getX(), getY()); break;
+			}
+		}
+			// If a key was released
+		else if (e.type == SDL_KEYUP && e.key.repeat == 0) {
+			switch (e.key.keysym.sym) {
+			case SDLK_UP: setVelY(getVelY() + SHIP_VEL); break;
+			case SDLK_DOWN: setVelY(getVelY() - SHIP_VEL); break;
+			case SDLK_LEFT: setVelX(getVelX() + SHIP_VEL); break;
+			case SDLK_RIGHT: setVelX(getVelX() - SHIP_VEL); break;
+			}
+		}
+	}
+}
+
+
+	// If a key was pressed
+	//int storeX = 0, storeY = 0;
+	//Normalized direction
+	//int xDir = 0;		// keep track of the x direction, x equals ‐1, the joystick's x position is pointing left
+	//int yDir = 0;		// keep track of the y direction, positive up, negative down
+/*
 	if (e.type == SDL_KEYDOWN && e.key.repeat == 0) {
 		// MOVEMENT
 		// Adjust the velocity
-		switch (e.key.keysym.sym) {
-		case SDLK_UP:
-		case SDLK_w: mVelY -= SHIP_VEL; break;
-		case SDLK_DOWN:
-		case SDLK_s: mVelY += SHIP_VEL; break;
-		case SDLK_LEFT:
-		case SDLK_a: mVelX -= SHIP_VEL; break;
-		case SDLK_RIGHT:
-		case SDLK_d: mVelX += SHIP_VEL; break;
+		if (player == 2) {
+			switch (e.key.keysym.sym) {
+			case SDLK_UP: setVelY(getVelY() - SHIP_VEL); break;
+			case SDLK_DOWN: setVelY(getVelY() + SHIP_VEL); break;
+			case SDLK_LEFT: setVelX(getVelX() - SHIP_VEL); break;
+			case SDLK_RIGHT: setVelX(getVelX() + SHIP_VEL); break;
 
-		// FIRE WEAPON
-		case SDLK_SPACE:
-			game1.spawnLaser();
-			break; // SEAN: Press space bar to spawn a new laser
+				// FIRE WEAPON
+			case SDLK_e: game1.spawnLaser(); break; // SEAN: Press space bar to spawn a new laser
+			}
 		}
-	}
-	else if (e.type == SDL_JOYBUTTONDOWN) {
-		if (e.jbutton.button == 0) {
-			game1.spawnLaser();
-			std::cout << (int)e.jbutton.button << std::endl;	// shows which button has been pressed
-		}
-	}
-	// If a key was released
-	else if (e.type == SDL_KEYUP && e.key.repeat == 0) {
-		// Adjust the velocity
-		switch (e.key.keysym.sym) {
-		case SDLK_UP:
-		case SDLK_w: mVelY += SHIP_VEL; break;
-		case SDLK_DOWN:
-		case SDLK_s: mVelY -= SHIP_VEL; break;
-		case SDLK_LEFT:
-		case SDLK_a: mVelX += SHIP_VEL; break;
-		case SDLK_RIGHT:
-		case SDLK_d: mVelX -= SHIP_VEL; break;
-		}
-	}
-	// Set movement for D-Pad
-	else if (e.type == SDL_JOYHATMOTION) {
-		if (e.jhat.value == SDL_HAT_UP) {
-			resetPreviousDirection();
-			mVelY -= SHIP_VEL;
-			previous = SDL_HAT_UP;
-		}
-		else if (e.jhat.value == SDL_HAT_DOWN) {
-			resetPreviousDirection();
-			mVelY += SHIP_VEL;
-			previous = SDL_HAT_DOWN;
-		}
-		else if (e.jhat.value == SDL_HAT_LEFT) {
-			resetPreviousDirection();
-			mVelX -= SHIP_VEL;
-			previous = SDL_HAT_LEFT;
-		}
-		else if (e.jhat.value == SDL_HAT_RIGHT) {
-			resetPreviousDirection();
-			mVelX += SHIP_VEL;
-			previous = SDL_HAT_RIGHT;
-		}
-		else if (e.jhat.value == SDL_HAT_RIGHTUP) {
-			resetPreviousDirection();
-			mVelX += DIAGONAL_VEL;
-			mVelY -= DIAGONAL_VEL;
-			previous = SDL_HAT_RIGHTUP;
-		}
-		else if (e.jhat.value == SDL_HAT_RIGHTDOWN) {
-			resetPreviousDirection();
-			mVelX += DIAGONAL_VEL;
-			mVelY += DIAGONAL_VEL;
-			previous = SDL_HAT_RIGHTDOWN;
-		}
-		else if (e.jhat.value == SDL_HAT_LEFTUP) {
-			resetPreviousDirection();
-			mVelX -= DIAGONAL_VEL;
-			mVelY -= DIAGONAL_VEL;
-			previous = SDL_HAT_LEFTUP;
-		}
-		else if (e.jhat.value == SDL_HAT_LEFTDOWN) {
-			resetPreviousDirection();
-			mVelX -= DIAGONAL_VEL;
-			mVelY += DIAGONAL_VEL;
-			previous = SDL_HAT_LEFTDOWN;
-		}
+		else if (player == 1) {
+			switch (e.key.keysym.sym) {
+			case SDLK_w: setVelY(getVelY() - SHIP_VEL); break;
+			case SDLK_s: setVelY(getVelY() + SHIP_VEL); break;
+			case SDLK_a: setVelX(getVelX() - SHIP_VEL); break;
+			case SDLK_d: setVelX(getVelX() + SHIP_VEL); break;
 
-		if (e.jhat.value == SDL_HAT_CENTERED) {
-			resetPreviousDirection();
-			previous = SDL_HAT_CENTERED;
+				// FIRE WEAPON
+			case SDLK_SPACE: game1.spawnLaser(); break; // SEAN: Press space bar to spawn a new laser
+			}
+		}
+		// If a key was released
+		else if (e.type == SDL_KEYUP && e.key.repeat == 0) {
+			// Adjust the velocity
+			if (player == 1) {
+				switch (e.key.keysym.sym) {
+				case SDLK_w: mVelY += SHIP_VEL; break;
+				case SDLK_s: mVelY -= SHIP_VEL; break;
+				case SDLK_a: mVelX += SHIP_VEL; break;
+				case SDLK_d: mVelX -= SHIP_VEL; break;
+				}
+			}
+			else if (player == 2) {
+				switch (e.key.keysym.sym) {
+				case SDLK_UP: mVelY += SHIP_VEL; break;
+				case SDLK_DOWN: mVelY -= SHIP_VEL; break;
+				case SDLK_LEFT: mVelX += SHIP_VEL; break;
+				case SDLK_RIGHT: mVelX -= SHIP_VEL; break;
+				}
+			}
+		}
+		else if (e.type == SDL_JOYBUTTONDOWN) {
+			if (e.jbutton.button == 0) {
+				game1.spawnLaser();
+				std::cout << (int)e.jbutton.button << std::endl;	// shows which button has been pressed
+			}
 		}
 	}
-	else if (e.type == SDL_JOYAXISMOTION)	// Check if the joystick has moved
-	{
-		if (e.jaxis.which == 1)			// if (e.jaxis.which == 0) - which controller the axis motion came from
+
+		/*
+		// Set movement for D-Pad
+		else if (e.type == SDL_JOYHATMOTION) {
+			if (e.jhat.value == SDL_HAT_UP) {
+				resetPreviousDirection();
+				mVelY -= SHIP_VEL;
+				previous = SDL_HAT_UP;
+			}
+			else if (e.jhat.value == SDL_HAT_DOWN) {
+				resetPreviousDirection();
+				mVelY += SHIP_VEL;
+				previous = SDL_HAT_DOWN;
+			}
+			else if (e.jhat.value == SDL_HAT_LEFT) {
+				resetPreviousDirection();
+				mVelX -= SHIP_VEL;
+				previous = SDL_HAT_LEFT;
+			}
+			else if (e.jhat.value == SDL_HAT_RIGHT) {
+				resetPreviousDirection();
+				mVelX += SHIP_VEL;
+				previous = SDL_HAT_RIGHT;
+			}
+			else if (e.jhat.value == SDL_HAT_RIGHTUP) {
+				resetPreviousDirection();
+				mVelX += DIAGONAL_VEL;
+				mVelY -= DIAGONAL_VEL;
+				previous = SDL_HAT_RIGHTUP;
+			}
+			else if (e.jhat.value == SDL_HAT_RIGHTDOWN) {
+				resetPreviousDirection();
+				mVelX += DIAGONAL_VEL;
+				mVelY += DIAGONAL_VEL;
+				previous = SDL_HAT_RIGHTDOWN;
+			}
+			else if (e.jhat.value == SDL_HAT_LEFTUP) {
+				resetPreviousDirection();
+				mVelX -= DIAGONAL_VEL;
+				mVelY -= DIAGONAL_VEL;
+				previous = SDL_HAT_LEFTUP;
+			}
+			else if (e.jhat.value == SDL_HAT_LEFTDOWN) {
+				resetPreviousDirection();
+				mVelX -= DIAGONAL_VEL;
+				mVelY += DIAGONAL_VEL;
+				previous = SDL_HAT_LEFTDOWN;
+			}
+
+			if (e.jhat.value == SDL_HAT_CENTERED) {
+				resetPreviousDirection();
+				previous = SDL_HAT_CENTERED;
+			}
+		}
+		*//*
+		else if (e.type == SDL_JOYAXISMOTION)	// Check if the joystick has moved
 		{
-			// Check if it was a motion in the x direction or y direction
-			//X axis motion
-			if (e.jaxis.axis == 0) {			// typically, axis 0 is the x axis
-				// LEFT
-				if (e.jaxis.axis == 0 && e.jaxis.value < -JOYSTICK_DEAD_ZONE) {	// Value: position the analog stick has on the axis
-					resetPreviousStickDirection();
-					printf("\nleft ");
-					mVelX -= SHIP_VEL;
-					previousStick = 1;
+			if (e.jaxis.which == 1)			// if (e.jaxis.which == 0) - which controller the axis motion came from
+			{
+				// Check if it was a motion in the x direction or y direction
+				//X axis motion
+				if (e.jaxis.axis == 0) {			// typically, axis 0 is the x axis
+					// LEFT
+					if (e.jaxis.axis == 0 && e.jaxis.value < -JOYSTICK_DEAD_ZONE) {	// Value: position the analog stick has on the axis
+						resetPreviousStickDirection();
+						printf("\nleft ");
+						mVelX -= SHIP_VEL;
+						previousStick = 1;
+					}
+					// RIGHT
+					else if (e.jaxis.axis == 0 && e.jaxis.value > JOYSTICK_DEAD_ZONE) {
+						resetPreviousStickDirection();
+						printf("\nright ");
+						mVelX += SHIP_VEL;		// test
+						previousStick = 2;
+					}
+					else if (e.jaxis.value < JOYSTICK_DEAD_ZONE && e.jaxis.value > -JOYSTICK_DEAD_ZONE) {
+						//if (e.jaxis.axis == 1 && e.jaxis.value < JOYSTICK_DEAD_ZONE && e.jaxis.value > -JOYSTICK_DEAD_ZONE)
+						if (!(e.jaxis.axis == 1 && e.jaxis.value < JOYSTICK_DEAD_ZONE && e.jaxis.value > -JOYSTICK_DEAD_ZONE)) // If x axes not in dead zone
+							resetPreviousStickDirection();
+						//if (e.jaxis.axis == 1) resetPreviousStickDirection();
+					}
 				}
-				// RIGHT
-				else if (e.jaxis.axis == 0 && e.jaxis.value > JOYSTICK_DEAD_ZONE) {
-					resetPreviousStickDirection();
-					printf("\nright ");
-					mVelX += SHIP_VEL;		// test
-					previousStick = 2;
-				}
-				else if (e.jaxis.value < JOYSTICK_DEAD_ZONE && e.jaxis.value > -JOYSTICK_DEAD_ZONE) {
-					//if (e.jaxis.axis == 1 && e.jaxis.value < JOYSTICK_DEAD_ZONE && e.jaxis.value > -JOYSTICK_DEAD_ZONE)
-					if(!(e.jaxis.axis == 1 && e.jaxis.value < JOYSTICK_DEAD_ZONE && e.jaxis.value > -JOYSTICK_DEAD_ZONE)) // If x axes not in dead zone
-					resetPreviousStickDirection();
-					//if (e.jaxis.axis == 1) resetPreviousStickDirection();
-				}
-			}
+
+
+				/*
+					// BELOW
+					else if (e.jaxis.axis == 1 && e.jaxis.value < -JOYSTICK_DEAD_ZONE) {
+						resetPreviousStickDirection();
+						printf("\nup");
+						mVelY -= SHIP_VEL;
+						previousStick = 3;
+					}
+					// ABOVE
+					else if (e.jaxis.axis == 1 && e.jaxis.value > JOYSTICK_DEAD_ZONE) {
+						resetPreviousStickDirection();
+						printf("\ndown");
+						mVelY += SHIP_VEL;
+						previousStick = 4;
+					}
+					//else if (e.jaxis.axis == 1 && e.jaxis.value < JOYSTICK_DEAD_ZONE && e.jaxis.value > -JOYSTICK_DEAD_ZONE) {
+					//	resetPreviousStickDirection();
+					//}
+
+
+					if (e.jaxis.value > -JOYSTICK_DEAD_ZONE && e.jaxis.value < JOYSTICK_DEAD_ZONE) {
+						resetPreviousStickDirection();
+					}
+
+						*/
+						//Y axis motion
+						//else 				
+					/*	if (e.jaxis.axis == 1){	// axis id 1 for y axis
+							// BELOW of dead zone
+							if (e.jaxis.value < -JOYSTICK_DEAD_ZONE) {
+								resetPreviousStickDirection();
+								printf("\nup");
+								mVelY -= SHIP_VEL;
+								previousStick = 3;
+							}
+							// ABOVE of dead zone
+							else if (e.jaxis.value > JOYSTICK_DEAD_ZONE) {
+								//yDir = 1;
+								resetPreviousStickDirection();
+								printf("\ndown");
+								mVelY += SHIP_VEL;
+								previousStick = 4;
+							}
+
+							else if (e.jaxis.value > -JOYSTICK_DEAD_ZONE && e.jaxis.value < JOYSTICK_DEAD_ZONE) {
+								if (!(e.jaxis.axis == 0 && e.jaxis.value < JOYSTICK_DEAD_ZONE && e.jaxis.value > -JOYSTICK_DEAD_ZONE))
+								resetPreviousStickDirection();
+							}
+						}
+
 			/*
-				// BELOW
-				else if (e.jaxis.axis == 1 && e.jaxis.value < -JOYSTICK_DEAD_ZONE) {
-					resetPreviousStickDirection();
-					printf("\nup");
-					mVelY -= SHIP_VEL;
-					previousStick = 3;
-				}
-				// ABOVE
-				else if (e.jaxis.axis == 1 && e.jaxis.value > JOYSTICK_DEAD_ZONE) {
-					resetPreviousStickDirection();
-					printf("\ndown");
-					mVelY += SHIP_VEL;
-					previousStick = 4;
-				}
-				//else if (e.jaxis.axis == 1 && e.jaxis.value < JOYSTICK_DEAD_ZONE && e.jaxis.value > -JOYSTICK_DEAD_ZONE) {
-				//	resetPreviousStickDirection();
-				//}
+						//else
+							if (e.jaxis.axis == 2)	// axis id 1 for y axis
+						{
+							printf("left trigger");
+						}
+						else if (e.jaxis.axis == 3)	// axis id 1 for y axis
+						{
+							printf("right stick y");
+						}
+						else if (e.jaxis.axis == 4)	// axis id 1 for y axis
+						{
+							printf("right stick x");
+						}
+						else if (e.jaxis.axis == 5)	// axis id 1 for y axis
+						{
+							printf("right trigger");
+						}
+				*/
+			//}
+		//}
 
+		//Calculate angle
+		// Before we render the arrow which will point in the direction the analog stick is pushed, we need to calculate the angle
+		// Gives angle in radians, so convert to degrees
+		//double joystickAngle = atan2((double)yDir, (double)xDir) * (180.0 / M_PI);	// atan2: arc tangent 2 (inverse tangenet 2)
 
-				if (e.jaxis.value > -JOYSTICK_DEAD_ZONE && e.jaxis.value < JOYSTICK_DEAD_ZONE) {
-					resetPreviousStickDirection();
-				}
-
-					*/
-			//Y axis motion
-			//else
-		/*	if (e.jaxis.axis == 1){	// axis id 1 for y axis
-				// BELOW of dead zone
-				if (e.jaxis.value < -JOYSTICK_DEAD_ZONE) {
-					resetPreviousStickDirection();
-					printf("\nup");
-					mVelY -= SHIP_VEL;
-					previousStick = 3;
-				}
-				// ABOVE of dead zone
-				else if (e.jaxis.value > JOYSTICK_DEAD_ZONE) {
-					//yDir = 1;
-					resetPreviousStickDirection();
-					printf("\ndown");
-					mVelY += SHIP_VEL;
-					previousStick = 4;
-				}
-
-				else if (e.jaxis.value > -JOYSTICK_DEAD_ZONE && e.jaxis.value < JOYSTICK_DEAD_ZONE) {
-					if (!(e.jaxis.axis == 0 && e.jaxis.value < JOYSTICK_DEAD_ZONE && e.jaxis.value > -JOYSTICK_DEAD_ZONE))
-					resetPreviousStickDirection();
-				}
-			}
-
-/*
-			//else
-				if (e.jaxis.axis == 2)	// axis id 1 for y axis
-			{
-				printf("left trigger");
-			}
-			else if (e.jaxis.axis == 3)	// axis id 1 for y axis
-			{
-				printf("right stick y");
-			}
-			else if (e.jaxis.axis == 4)	// axis id 1 for y axis
-			{
-				printf("right stick x");
-			}
-			else if (e.jaxis.axis == 5)	// axis id 1 for y axis
-			{
-				printf("right trigger");
-			}
-	*/
-		}
-	}
-
-	//Calculate angle
-	// Before we render the arrow which will point in the direction the analog stick is pushed, we need to calculate the angle
-	// Gives angle in radians, so convert to degrees
-	//double joystickAngle = atan2((double)yDir, (double)xDir) * (180.0 / M_PI);	// atan2: arc tangent 2 (inverse tangenet 2)
-
-																				//Correct angle
+	//Correct angle
 	//if (xDir == 0 && yDir == 0)	// if both the x and y position are 0, we could get a garbage angle, so we correct the angle to equal 0.
 	//{
 	//	joystickAngle = 0;
 	//}
-}
+	
+//}
+
 void Ship::resetPreviousStickDirection() {
 	//std::cout << "\nstick position: " << previousStick << std::endl;
 	//if (previousStick != 0)
@@ -255,14 +324,14 @@ void Ship::resetPreviousStickDirection() {
 		else if (previousStick == 2) {
 			mVelX -= SHIP_VEL;
 		}
-
+		
 		if (previousStick == 3) {
 			mVelY += SHIP_VEL;
 		}
 		else if (previousStick == 4) {
 			mVelY -= SHIP_VEL;
 		}
-
+		
 	//}
 	previousStick = 0;
 }
@@ -300,7 +369,7 @@ void Ship::resetPreviousDirection() {
 	}
 }
 
-void Ship::move() {
+void Ship::move() {	
 	mPosX += mVelX;												// Move the ship left or right
 	mCollider.x = mPosX;
 
@@ -309,7 +378,7 @@ void Ship::move() {
 		mPosX -= mVelX;											// Move back
 		mCollider.x = mPosX;
 	}
-
+		
 	mPosY += mVelY;												// Move the ship up or down
 	mCollider.y = mPosY;
 
@@ -321,32 +390,30 @@ void Ship::move() {
 }
 
 // SEAN: Added get x and y function for ship to allow laser to spawn at ships location
-int Ship::getShipX(){
+int Ship::getX(){
 	return mPosX;
 }// end getX
 
-int Ship::getShipY(){
+int Ship::getY(){
 	return mPosY;
 }// end getX
-
-int Ship::getShipVelX(){
-	return mVelX;
-}// end getX
-
-int Ship::getShipVelY(){
+int Ship::getVelY() {
 	return mVelY;
-}// end getX
+}
+int Ship::getVelX() {
+	return mVelX;
+}
 
 SDL_Rect Ship::getCollider(){
 	return mCollider;
 }
 
-void Ship::setShipX(int x){
+void Ship::setX(int x){
 	mPosX = x;
 }// end setX
 
  // set Y
-void Ship::setShipY(int y){
+void Ship::setY(int y){
 	mPosY = y;
 }// end setY
 
@@ -358,3 +425,10 @@ void Ship::setShipColX(int x){
 void Ship::setShipColY(int y){
 	mCollider.y = y;
 }// end setY
+
+void Ship::setVelX(int x) {
+	mVelX = x;
+}
+void Ship::setVelY(int y) {
+	mVelY = y;
+}

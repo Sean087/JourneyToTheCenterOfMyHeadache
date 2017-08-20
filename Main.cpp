@@ -12,7 +12,7 @@ int main()
 
 	game.close();			// Free resources and close SDL
 
-	//system("pause");
+	system("pause");
 	
 	return 0;
 }

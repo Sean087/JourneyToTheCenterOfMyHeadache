@@ -1,6 +1,6 @@
 
 /*
-    Gamepad Supported
+    2 Player (Gamepad required)
 
     2017-08-11:
         Joe: Change window title
@@ -39,7 +39,8 @@ bool loadMedia();				// Loads media//void close();
 SDL_Window* gWindow = NULL;		// The window we'll be rendering to
 SDL_Renderer* gRenderer = NULL;	// The window renderer
 
-SDL_Event e;										// Event handler
+SDL_Event e1;										// Event handler
+SDL_Event e2;										// Event handler
 
 SDL_Joystick* gGameController = NULL;	// Game Controller 1 handler - Data type for a game controller is SDL_Joystick
 
@@ -58,12 +59,14 @@ LTexture gBGTexture;
 LTexture gBGStartTexture;
 LTexture gBGEndTexture;
 LTexture gShipTexture;
+LTexture gPlayer2Texture;
 LTexture gEnemyShipTexture;
 LTexture gLaserTexture; // SEAN: Created Texture for Laser
 LTexture gGameOverTextTexture;
 
 // SEAN: Move ship object outside of main so spawnLaser funtion can use it
 Ship ship;									// Declare a ship object that will be moving around on the screen
+Ship player2;
 EnemyShip enemy;
 
 
@@ -174,7 +177,7 @@ bool Game::init() {
 			}
 		}
 
-		gWindow = SDL_CreateWindow("JOURNEY TO THE CENTER OF MY HEADACHE v1.14 by Joe O'Regan & Se\u00E1n Horgan - Gamepad Support", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);	/* Create Window with name */
+		gWindow = SDL_CreateWindow("JOURNEY TO THE CENTER OF MY HEADACHE v1.18 by Joe O'Regan & Se\u00E1n Horgan - 2 Player", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);	/* Create Window with name */
 		if (gWindow == NULL) {
 			printf("Window could not be created! SDL Error: %s\n", SDL_GetError());
 			success = false;
@@ -236,8 +239,11 @@ bool loadMedia() {
 		printf("Failed to load Player texture!\n");
 		success = false;
 	}
+	if (!gPlayer2Texture.loadFromFile(".\\Art\\Player2.png")) {	// Load Ship texture
+		printf("Failed to load Player texture!\n");
+		success = false;
+	}
 
-	//if (!gEnemyShipTexture.loadFromFile("Enemy.png")) {		// Load Enemy Ship texture
 	if (!gEnemyShipTexture.loadFromFile(".\\Art\\EnemyVirus.png")) {		// Load Enemy Ship texture
 		printf("Failed to load Enemy texture!\n");
 		success = false;
@@ -256,7 +262,7 @@ bool loadMedia() {
 		success = false;
 	}
 
-	if (!gLaserTexture.loadFromFile(".\\Art\\LaserBeam.png")) {	// SEAN: Load Laser texture
+	if (!gLaserTexture.loadFromFile(".\\Art\\LaserGreen.png")) {	// SEAN: Load Laser texture
 		printf("Failed to load Laser texture!\n");
 		success = false;
 	}
@@ -276,6 +282,7 @@ void Game::close() {
 	gPromptTextTexture.free();
 	gLevelTextTexture.free();
 	gShipTexture.free();
+	gPlayer2Texture.free();
 	gEnemyShipTexture.free();
 	gBGTexture.free();
 	gBGStartTexture.free();
@@ -313,8 +320,8 @@ void Game::update(){
 
 			SDL_Color textColor = { 0, 100, 200, 255 };
 
-			if (SDL_PollEvent(&e) != 0) {
-				printf("Joystick connected %d\n", e.jaxis.which);						// DETECTS JOYSTICK
+			if (SDL_PollEvent(&e1) != 0) {
+				printf("Joystick connected %d\n", e1.jaxis.which);						// DETECTS JOYSTICK
 																						//printf("Number of buttons %d", SDL_JoystickNumButtons);
 																						//std::cout << "Number of buttons: " << SDL_JoystickNumButtons;
 				std::cout << "Number of buttons: " << SDL_JoystickNumButtons(gGameController) << std::endl;			// Number of useable buttons
@@ -392,17 +399,18 @@ void Game::update(){
 
 bool Game::playerInput(bool quit = false) {
 	// Handle events on queue
-	while (SDL_PollEvent(&e) != 0) {
+	while (SDL_PollEvent(&e1) != 0) {
 		// User requests quit	EXIT - CLOSE WINDOW
-		if (e.type == SDL_QUIT) {
+		if (e1.type == SDL_QUIT) {
 			quit = true;
 		}
 		//Reset start time on return keypress
-		else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_RETURN) {
+		else if (e1.type == SDL_KEYDOWN && e1.key.keysym.sym == SDLK_RETURN) {
 			startTime = SDL_GetTicks();	// time since the program started in milliseconds
 		}
 
-		ship.handleEvent(e);							// Handle input for the ship
+		ship.handleEvent(e1, 1);							// Handle input for Player 1
+		player2.handleEvent(e1, 2);							// Handle input for Player 2
 	}
 
 	return quit;
@@ -410,6 +418,7 @@ bool Game::playerInput(bool quit = false) {
 
 void Game::moveGameObjects() {// SEAN: Cycle through list of laser objects and move them
 	ship.move();							// Update ship movement
+	player2.move();
 	checkCollision(ship.getCollider(), enemy.getCollider());
 	enemy.moveEnemy();
 
@@ -417,11 +426,6 @@ void Game::moveGameObjects() {// SEAN: Cycle through list of laser objects and m
 		(*iter++)->move();					// Move the laser
 	}
 }
-
-
-
-
-
 
 
 int backgroundLoopCounter = 0;
@@ -466,11 +470,16 @@ void Game::renderGameObjects() {// Scroll background
 	if (gameOver == false) {
 		SDL_SetRenderDrawColor(gRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
 
-//		if(enemy.mEnAlive) SDL_RenderDrawRect(gRenderer, &enemy.getCollider());
-//		SDL_RenderDrawRect(gRenderer, &ship.getCollider());
+		SDL_Rect enemyCollider = enemy.getCollider();
+
+		//if(enemy.mEnAlive) SDL_RenderDrawRect(gRenderer, &enemy.getCollider());//////////////////////////////////////////////////////
+		//SDL_RenderDrawRect(gRenderer, &ship.getCollider());//////////////////////////////////////////////////////////////////////////
 
 		gShipTexture.setAlpha(playerAlpha);		// Flash the player ship -  Set the Alpha value for Enemy
+
 		ship.render();							// render the ship over the background
+		player2.render();
+
 		if(enemy.mEnAlive == true) enemy.render();
 
 		// SEAN: Cycle through list of laser objects and render them to screen
@@ -508,15 +517,27 @@ void Game::destroyGameObjects() {
 	}
 }
 
+
+
+
 // SEAN: Function to spawn laser at ships location
 void Game::spawnLaser() {
 	Laser* p_Laser = new Laser();
-	p_Laser->spawn(ship.getShipX() + 65, ship.getShipY() + 30, 20);
+	p_Laser->spawn(ship.getX() + 65, ship.getY() + 30, 20);
+	listOfLaserObjects.push_back(p_Laser);
+}// end spawnLaser
+void Game::spawnLaser(int x, int y, int velocity) {
+	Laser* p_Laser = new Laser();
+	p_Laser->spawn(x + 65, y + 30, velocity);	// adjust spawn position to front of ship
 	listOfLaserObjects.push_back(p_Laser);
 }// end spawnLaser
 
+
+
+
 void Ship::render() {
-	gShipTexture.render(mPosX, mPosY);					// Show the ship
+	gShipTexture.render(ship.getX(), ship.getY());					// Show the ship
+	gPlayer2Texture.render(player2.getX(), player2.getY());				// Show the ship
 }
 
 // SEAN: Function to render the laser objects to the screen
@@ -565,6 +586,7 @@ bool checkCollision(SDL_Rect a, SDL_Rect b){
 	std::cout << "Collision!" << std::endl;
 	playerFlash = true;
 
+	/*
 	enemy.mEnAlive = false;
 
 	ship.setShipX(ship.getShipX() - ship.getShipVelX());
@@ -572,7 +594,7 @@ bool checkCollision(SDL_Rect a, SDL_Rect b){
 
 	ship.setShipY(ship.getShipY() - ship.getShipVelY());
 	ship.setShipColY(ship.getShipY());
-
+	*/
 	return true;	//If none of the sides from A are outside B
 }
 

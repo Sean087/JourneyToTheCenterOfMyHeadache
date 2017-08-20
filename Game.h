@@ -23,6 +23,7 @@ public:
 	void update();
 	void close();					// Frees media and shuts down SDL
 	void spawnLaser();
+	void spawnLaser(int x, int y, int v = 20);
 
 	bool playerInput(bool quit);
 	void renderGameObjects();
